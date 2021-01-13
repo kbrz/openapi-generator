@@ -16,6 +16,11 @@ extension {{projectName}}API {
 {{#description}}
 /** {{description}} */{{/description}}
 {{#objcCompatible}}@objc {{/objcCompatible}}{{#nonPublicApi}}internal{{/nonPublicApi}}{{^nonPublicApi}}open{{/nonPublicApi}} class {{classname}}{{#objcCompatible}} : NSObject{{/objcCompatible}} {
+{{#useRxSwift}}
+
+    private static var workingRequestBuilders: [String:Any] = [:]
+
+{{/useRxSwift}}
 {{#operation}}
     {{#allParams}}
     {{#isEnum}}
@@ -111,8 +116,12 @@ extension {{projectName}}API {
     @available(*, deprecated, message: "This operation is deprecated.")
     {{/isDeprecated}}
     {{#nonPublicApi}}internal{{/nonPublicApi}}{{^nonPublicApi}}open{{/nonPublicApi}} class func {{operationId}}({{#allParams}}{{paramName}}: {{#isEnum}}{{#isContainer}}{{{dataType}}}{{/isContainer}}{{^isContainer}}{{{datatypeWithEnum}}}_{{operationId}}{{/isContainer}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{^required}}? = nil{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#hasParams}}, {{/hasParams}}apiResponseQueue: DispatchQueue = {{projectName}}API.apiResponseQueue) -> Observable<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {
+        let requestBuilderID = UUID().uuidString
+        let requestBuilder = {{operationId}}WithRequestBuilder({{#allParams}}{{paramName}}: {{paramName}}{{^-last}}, {{/-last}}{{/allParams}})
+        workingRequestBuilders[requestBuilderID] = requestBuilder
+
         return Observable.create { observer -> Disposable in
-            {{operationId}}WithRequestBuilder({{#allParams}}{{paramName}}: {{paramName}}{{^-last}}, {{/-last}}{{/allParams}}).execute(apiResponseQueue) { result -> Void in
+            requestBuilder.execute(apiResponseQueue) { result -> Void in
                 switch result {
                 {{#returnType}}
                 case let .success(response):
@@ -127,7 +136,7 @@ extension {{projectName}}API {
                 }
                 observer.onCompleted()
             }
-            return Disposables.create()
+            return Disposables.create { workingRequestBuilders.removeValue(forKey: requestBuilderID) }
         }
     }
 {{/useRxSwift}}
