@@ -18,7 +18,7 @@ extension {{projectName}}API {
 {{#objcCompatible}}@objc {{/objcCompatible}}{{#nonPublicApi}}internal{{/nonPublicApi}}{{^nonPublicApi}}open{{/nonPublicApi}} class {{classname}}{{#objcCompatible}} : NSObject{{/objcCompatible}} {
 {{#useRxSwift}}
 
-    private static var workingRequestBuilders: [String:Any] = [:]
+    private static var workingRequestBuilders = SynchronizedDictionary<String, Any>()
 
 {{/useRxSwift}}
 {{#operation}}
@@ -136,7 +136,7 @@ extension {{projectName}}API {
                 }
                 observer.onCompleted()
             }
-            return Disposables.create { workingRequestBuilders.removeValue(forKey: requestBuilderID) }
+            return Disposables.create { workingRequestBuilders[requestBuilderID] = nil }
         }
     }
 {{/useRxSwift}}
